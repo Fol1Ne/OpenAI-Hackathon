@@ -1,2 +1,59 @@
-[{"id":"cam1","street":"Grafton Street","latitude":53.3405,"longitude":-6.2605,"enabled":true},
- {"id":"cam2","street":"Dame Street","latitude":53.3440,"longitude":-6.2650,"enabled":true}]
+[
+  {
+    "id": "cam1",
+    "street": "Temple Bar",
+    "latitude": 53.3455,
+    "longitude": -6.2643,
+    "stream_url": "https://www.youtube.com/watch?v=3nyPER2kzqk",
+    "counting_line": [
+      [
+        0.13,
+        0.79
+      ],
+      [
+        0.65,
+        0.79
+      ]
+    ],
+    "calibrated_for": "https://www.youtube.com/watch?v=3nyPER2kzqk",
+    "location_note": "Approximate location; counts cover only the visible pavement."
+  },
+  {
+    "id": "cam2",
+    "street": "Cabra Road",
+    "latitude": null,
+    "longitude": null,
+    "stream_url": null,
+    "counting_line": [
+      [
+        0.2,
+        0.65
+      ],
+      [
+        0.8,
+        0.65
+      ]
+    ],
+    "calibrated_for": null,
+    "location_note": "Camera location and feed pending."
+  },
+  {
+    "id": "cam3",
+    "street": "North Circular Road",
+    "latitude": null,
+    "longitude": null,
+    "stream_url": null,
+    "counting_line": [
+      [
+        0.2,
+        0.65
+      ],
+      [
+        0.8,
+        0.65
+      ]
+    ],
+    "calibrated_for": null,
+    "location_note": "Camera location and feed pending."
+  }
+]

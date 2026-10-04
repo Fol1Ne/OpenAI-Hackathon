@@ -1,5 +1,7 @@
-import json, pathlib
+import json, pathlib, time
+import httpx
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from . import config
 from .services import camera, lighting, routing, analysis, explanation
@@ -15,7 +17,7 @@ def health(): return {"ok": True, "demo_mode": config.DEMO_MODE}
 def status():
     cs = camera.cameras()
     return {"mode": "demo" if config.DEMO_MODE else "live", "routing": "demo" if config.DEMO_MODE else "osrm (demo fallback)",
-            "lighting": lighting.load_ways()[1], "cameras": "live" if any(c["source"] == "live" for c in cs) else "demo",
+            "lighting": lighting.load_ways()[1], "cameras": "live" if any(c["source"] == "live" for c in cs) else "no_data",
             "ai": "openai" if config.ENABLE_AI and config.OPENAI_API_KEY else "disabled"}
 
 @app.get("/segments")
@@ -25,7 +27,7 @@ def segments():
     out = []
     for w in ways:
         c = cams.get(w["name"])
-        live = bool(c)
+        live = bool(c and c["source"] == "live" and c["status"] in ("collecting", "complete"))
         out.append({"id": w["id"], "name": w["name"], "coords": w["coords"], "lit": w["lit"],
                     "foot_traffic": classify_activity(c["avg_people_30min"]) if live else "unknown",
                     "avg_people_30min": c["avg_people_30min"] if live else None,
@@ -35,6 +37,26 @@ def segments():
 
 @app.get("/cameras")
 def cams(): return camera.cameras()
+
+@app.get("/frames/{camera_id}.jpg")
+async def demo_frame(camera_id: str):
+    # Fixed local worker addresses: no user-controlled upstream URL.
+    ports = {"cam1": 8101, "cam2": 8102, "cam3": 8103}
+    headers = {"Cache-Control": "no-store, max-age=0"}
+    if camera_id not in ports:
+        return Response(status_code=404, headers=headers)
+    try:
+        async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
+            result = await client.get(f"http://127.0.0.1:{ports[camera_id]}/frame.jpg")
+        timestamp = float(result.headers.get("x-frame-time", "0"))
+        if result.status_code != 200 or not 0 <= time.time() - timestamp <= 3:
+            return Response(status_code=503, headers=headers)
+        for key in ("x-frame-time", "x-people-now", "x-passages", "x-observed-seconds", "x-window-complete", "x-camera-source"):
+            if key in result.headers:
+                headers[key] = result.headers[key]
+        return Response(result.content, media_type="image/jpeg", headers=headers)
+    except (httpx.HTTPError, ValueError):
+        return Response(status_code=503, headers=headers)
 
 def _parse(s):
     try: a, b = s.split(","); return [float(a), float(b)]

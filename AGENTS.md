@@ -177,3 +177,30 @@ Done when the full demo runs end to end from a clean checkout.
 - **Privacy:** counts people, stores no footage, identifies no one. A full rollout would need a data protection impact assessment and permission from the camera operator.
 - **Scale story:** Dublin already has thousands of cameras. We show it works with two.
 - Future work: more cameras, a user-reported layer, accessibility routing, and a DPIA before any real deployment.
+
+## Passage-counting extension (user-requested, 2026-10-04)
+
+This implementation spans CV, backend integration and frontend. `/cameras` keeps
+its existing measurement fields and adds `passages_10min` (integer or null),
+`observed_seconds` (0–600), `window_seconds` (600), `window_complete` (boolean),
+`status` (`collecting`, `complete`, `no_data`), `needs_calibration` (boolean), and
+`location_note`. Camera `source` is `live`, `synthetic` (recorded replay) or
+`unknown`. `updated` is the last successful frame timestamp, null before first
+observation; missing/stale counts are null. Pending camera coordinates are null.
+`frame_url` points to `/frames/camN.jpg` while observations are current. The
+user-requested live demo shows green person boxes and a yellow counting line.
+Only the latest annotated JPEG is kept in worker memory, with detected people
+blurred. Loopback-only preview servers use ports 8101–8103; FastAPI proxies
+them with a two-second timeout and no-store headers. Stale images return 503.
+
+Temple Bar, Cabra Road and North Circular Road replace the old demo cameras.
+Only the supplied Temple Bar feed is configured. Missing feeds show no current
+data even when route/lighting demos are enabled. Count crossings of a calibrated
+finite pavement line in either direction, once per short-lived geometric track.
+Tracks expire after one second unseen or 30 seconds total and are never saved.
+Only aggregate counts, coverage, brightness and timestamps are persisted.
+The demo-only annotated frame can be read locally from worker memory.
+A full-window label requires 600 seconds observed in the trailing 600 seconds;
+partial windows show their actual coverage. Counts are detector estimates, not
+unique identities or a measurement of the entire road. No red thresholds are
+introduced by this change. Synthetic observations never count as live coverage.

@@ -1,23 +1,65 @@
-"""CameraService: LiveCameraService (metrics written by cv/run.py, <120s old) -> DemoCameraService (deterministic fixture, labelled DEMO)."""
-import json, pathlib, time, datetime
-from .traffic import classify_activity
-D = pathlib.Path(__file__).resolve().parents[1] / "data"
-METRICS = pathlib.Path(__file__).resolve().parents[3] / "data" / "cache" / "camera_metrics.json"
-DEMO = {"cam1": (5, 6.2, 0.41), "cam2": (2, 3.1, 0.33)}  # DEMO DATA, deterministic
+"""Read aggregate camera metrics. Missing, failed or stale observations stay unknown."""
+import datetime
+import json
+import math
+import pathlib
+import time
 
-def _iso(ts): return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).isoformat()
+from .traffic import classify_activity
+
+D = pathlib.Path(__file__).resolve().parents[1] / 'data'
+METRICS = pathlib.Path(__file__).resolve().parents[3] / 'data/cache/camera_metrics.json'
+STALE_SECONDS = 5
+
+
+def _number(value, minimum=0, maximum=float('inf')):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and minimum <= value <= maximum
+
+
+def _iso(ts):
+    return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).isoformat() if _number(ts, maximum=253402300799) else None
+
+
 def cameras():
-    cams = json.loads((D / "cameras.json").read_text())
-    try: live = json.loads(METRICS.read_text()) if METRICS.exists() else {}
-    except Exception: live = {}
+    metadata = json.loads((D / 'cameras.json').read_text())
+    try:
+        metrics = json.loads(METRICS.read_text())
+        if not isinstance(metrics, dict):
+            metrics = {}
+    except (OSError, ValueError):
+        metrics = {}
+    now = time.time()
     out = []
-    for c in cams:
-        m = live.get(c["id"])
-        if m and time.time() - m["ts"] < 120:
-            src, now, avg, br, ts = "live", m["people_now"], m["rolling_average"], m["brightness"], m["ts"]
-        else:
-            (now, avg, br), src, ts = DEMO[c["id"]], "demo", time.time() - 12
-        out.append({"id": c["id"], "street": c["street"], "latitude": c["latitude"], "longitude": c["longitude"], "source": src,
-                    "status": "LIVE" if src == "live" else "DEMO CAMERA", "people_now": now, "avg_people_30min": avg, "brightness": br,
-                    "activity": classify_activity(avg), "updated": _iso(ts)})
+    for camera in metadata:
+        metric = metrics.get(camera['id'], {})
+        if not isinstance(metric, dict):
+            metric = {}
+        ts = metric.get('ts')
+        valid = (metric.get('state') == 'observing' and _number(ts) and 0 <= now - ts <= STALE_SECONDS
+                 and metric.get('source') in ('live', 'synthetic')
+                 and _number(metric.get('passages_10min'))
+                 and _number(metric.get('observed_seconds'), maximum=600)
+                 and _number(metric.get('people_now'))
+                 and _number(metric.get('brightness'), maximum=1))
+        seconds = metric['observed_seconds'] if valid else 0
+        complete = valid and metric.get('window_complete') is True and seconds >= 599.99
+        source = metric['source'] if valid else 'unknown'
+        status = 'complete' if complete else 'collecting' if valid else 'no_data'
+        average = metric.get('rolling_average') if valid else None
+        out.append({
+            'id': camera['id'], 'street': camera['street'],
+            'latitude': camera['latitude'], 'longitude': camera['longitude'],
+            'location_note': camera.get('location_note', ''),
+            'source': source, 'status': status,
+            'people_now': metric['people_now'] if valid else None,
+            'avg_people_30min': average if _number(average) else None,
+            'brightness': metric['brightness'] if valid else None,
+            'activity': classify_activity(average) if _number(average) else 'unknown',
+            'updated': _iso(ts),
+            'frame_url': f"/frames/{camera['id']}.jpg" if valid else None,
+            'passages_10min': int(metric['passages_10min']) if valid else None,
+            'observed_seconds': seconds, 'window_seconds': 600,
+            'window_complete': bool(complete),
+            'needs_calibration': metric.get('state') == 'needs_calibration',
+        })
     return out
