@@ -6,7 +6,7 @@ if _env.exists():  # tiny .env loader, no extra dependency
             k, v = line.split("=", 1); os.environ.setdefault(k.strip(), v.strip())
 def flag(k, d="false"): return os.getenv(k, d).lower() == "true"
 DEMO_MODE = flag("DEMO_MODE", "true")
-OSRM_URL = os.getenv("OSRM_URL") or "https://router.project-osrm.org"
+OSRM_URL = os.getenv("WALKING_OSRM_URL") or "https://routing.openstreetmap.de/routed-foot"
 OVERPASS_URL = os.getenv("OVERPASS_URL") or "https://overpass-api.de/api/interpreter"
 ENABLE_AI = flag("ENABLE_AI")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")  # backend only; optional

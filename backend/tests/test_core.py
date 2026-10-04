@@ -1,4 +1,7 @@
 import os
+import pytest
+import httpx
+from app.services import routing, analysis
 from fastapi.testclient import TestClient
 from app import config
 from app.main import app
@@ -16,15 +19,32 @@ def test_unknown_stays_unknown():
     assert classify_lit(None) == "unknown"
     r = match_route([[0, 0], [0, 0.001]], [{"name": "X", "lit": "yes", "coords": [[1, 1], [1, 1.001]]}])
     assert r["pct_unknown"] == 100 and r["pct_lit"] == 0
-def test_selection_and_tiebreak():
-    a = {"minutes": 12, "pct_lit": 60, "streets_with_live_traffic": 1}; b = {"minutes": 15, "pct_lit": 95, "streets_with_live_traffic": 0}
-    d = {"minutes": 16, "pct_lit": 95, "streets_with_live_traffic": 2}
-    assert pick([a, b]) == (a, b) and pick([a, b, d])[1] is d
-def test_demo_route_deterministic_and_comparison():
-    r1, r2 = c.get("/route", params=Q).json(), c.get("/route", params=Q).json()
-    assert r1 == r2 and r1["sources"]["routing"] == "demo" and r1["sources"]["lighting"] == "demo"
-    assert r1["well_lit"]["pct_lit"] > r1["fastest"]["pct_lit"] and r1["fastest"]["minutes"] < r1["well_lit"]["minutes"]
-    assert r1["fastest"]["pct_unknown"] > 0 and "longer" in r1["explanation"]
+@pytest.fixture(autouse=True)
+def offline_routing(monkeypatch):
+    monkeypatch.setattr(config, 'DEMO_MODE', True)
+    monkeypatch.setattr(config, 'ENABLE_AI', False)
+    monkeypatch.setattr(routing.OSRMRoutingService, 'routes', lambda self, a, b: [
+        {'coords': [a, [53.3416, -6.2569], b], 'minutes': 10, 'distance_m': 800, 'street_names': ['Nassau Street', 'Kildare Street']},
+        {'coords': [a, [53.3425, -6.2600], b], 'minutes': 14, 'distance_m': 1000, 'street_names': ['Grafton Street']},
+    ])
+
+
+def test_selection_ignores_lighting_and_traffic():
+    a = {'minutes': 12, 'pct_lit': 0, 'streets_with_live_traffic': 0}
+    b = {'minutes': 15, 'pct_lit': 100, 'streets_with_live_traffic': 5}
+    assert pick([a, b]) == (a, a)
+
+
+def test_route_uses_fastest_with_compatibility_aliases():
+    response = c.get('/route', params=Q)
+    assert response.status_code == 200
+    result = response.json()
+    assert result['route']['minutes'] == 10
+    assert result['route'] == result['fastest'] == result['well_lit']
+    assert result['sources']['routing'] == 'osrm-foot'
+    assert result['route']['coords'][0] == [53.3438, -6.2546]
+    assert result['route']['coords'][-1] == [53.3392, -6.26]
+
 def test_cameras_without_metrics_are_unknown(monkeypatch, tmp_path):
     from app.services import camera
     monkeypatch.setattr(camera, "METRICS", tmp_path / "missing.json")
@@ -37,10 +57,14 @@ def test_status_and_segments(monkeypatch, tmp_path):
     s = c.get("/status").json()
     assert s["mode"] == "demo" and s["ai"] == "disabled" and s["cameras"] == "no_data"
     assert c.get("/segments").status_code == 200
-def test_osrm_failure_falls_back_to_demo(monkeypatch):
-    monkeypatch.setattr(config, "DEMO_MODE", False); monkeypatch.setattr(config, "OSRM_URL", "http://127.0.0.1:1")
-    monkeypatch.setattr(config, "OVERPASS_URL", "http://127.0.0.1:1")
-    r = c.get("/route", params=Q); assert r.status_code == 200 and r.json()["sources"]["routing"] == "demo"
+def test_routing_failure_returns_retry_error(monkeypatch):
+    def fail(*args):
+        raise httpx.ConnectError('offline')
+    monkeypatch.setattr(routing.OSRMRoutingService, 'routes', fail)
+    response = c.get('/route', params=Q)
+    assert response.status_code == 503
+    assert 'Try again' in response.json()['detail']
+
 def test_ai_failure_uses_template(monkeypatch):
     monkeypatch.setattr(config, "ENABLE_AI", True); monkeypatch.setattr(config, "OPENAI_API_KEY", "bad")
     monkeypatch.setattr(explanation.httpx, "post", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("net")))
@@ -99,3 +123,29 @@ def test_corrupt_camera_metrics_are_unknown(monkeypatch, tmp_path):
     for contents in ['{', '[]', '{"cam1": null}', '{"cam1": {"state": "observing", "ts": "bad"}}']:
         path.write_text(contents)
         assert c.get('/cameras').json()[0]['passages_10min'] is None
+
+
+def test_route_notices_only_for_nearby_current_observations():
+    cam = {'id': 'cam1', 'street': 'Temple Bar', 'latitude': 53.3455, 'longitude': -6.2643,
+           'source': 'live', 'status': 'complete', 'window_complete': True,
+           'passages_10min': 0, 'people_now': 0, 'updated': '2026-10-04T22:00:00Z'}
+    near = {'coords': [[53.3455, -6.265], [53.3455, -6.263]], 'minutes': 1, 'distance_m': 100}
+    route = analysis.analyse(near, [], [cam])
+    assert route['camera_ids'] == ['cam1'] and len(route['traffic_warnings']) == 1
+    assert 'last 10 minutes' in route['traffic_warnings'][0]['message']
+    for change in [{'source': 'synthetic'}, {'source': 'unknown', 'status': 'no_data'},
+                   {'status': 'collecting', 'window_complete': False, 'people_now': 3}]:
+        assert analysis.analyse(near, [], [{**cam, **change}])['traffic_warnings'] == []
+    partial = {**cam, 'status': 'collecting', 'window_complete': False}
+    assert 'latest camera frame' in analysis.analyse(near, [], [partial])['traffic_warnings'][0]['message']
+    far = {**near, 'coords': [[53.34, -6.27], [53.34, -6.26]]}
+    assert analysis.analyse(far, [], [cam])['camera_ids'] == []
+
+
+@pytest.mark.parametrize('point', ['nan,-6.26', '91,-6.26', '53.34,181', 'bad'])
+def test_invalid_route_points(point):
+    assert c.get('/route', params={'from': point, 'to': Q['to']}).status_code == 400
+
+
+def test_equal_route_points():
+    assert c.get('/route', params={'from': Q['from'], 'to': Q['from']}).status_code == 400

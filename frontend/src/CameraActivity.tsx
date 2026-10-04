@@ -1,7 +1,7 @@
 export type Camera = {
   id: string; street: string; latitude: number | null; longitude: number | null;
   source: string; status: string; updated: string | null; location_note: string;
-  passages_10min: number | null; observed_seconds: number; window_seconds: number;
+  people_now: number | null; passages_10min: number | null; observed_seconds: number; window_seconds: number;
   window_complete: boolean; needs_calibration: boolean;
 };
 

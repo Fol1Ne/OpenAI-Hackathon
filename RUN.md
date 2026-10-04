@@ -106,3 +106,13 @@ Detected person regions are blurred before display. Only one latest JPEG per
 camera is held in memory; no preview images are saved. The CV workers bind local
 preview ports 8101–8103. The backend proxies `/frames/cam1.jpg`; stale frames
 expire after three seconds and all image responses disable browser caching.
+
+## A-to-B routes
+
+Routing now uses https://routing.openstreetmap.de/routed-foot (a pedestrian OSRM
+profile). Set `WALKING_OSRM_URL` to another compatible foot-profile server if needed.
+No key is required. `DEMO_MODE` affects lighting fixtures only; route requests
+always use the walking provider, with an eight-second timeout and HTTP 503 on
+failure. The map shows one fastest available walking path. Camera notices never
+redirect the path. Zero in a current frame is labelled explicitly; zero passages
+requires a complete observed window. Other sections remain without pedestrian data.

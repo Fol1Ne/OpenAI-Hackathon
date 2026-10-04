@@ -5,7 +5,7 @@
 | | Demo mode (`DEMO_MODE=true`, default) | Live mode (`DEMO_MODE=false`) |
 |---|---|---|
 | Map | OSM tiles (override with `VITE_TILE_URL`) | same |
-| Routing | deterministic demo routes (labelled DEMO ROUTE) | public OSRM, auto-fallback to demo routes |
+| Routing | OSRM pedestrian route (network required) | OSRM pedestrian route (503 if unavailable) |
 | Lighting | bundled fixture `data/lighting/dublin_demo_lighting.json` (DEMO DATA, not real OSM tags) | Overpass -> `data/cache`, auto-fallback to cache, then demo |
 | Cameras | Live passage worker or No current data | `CAMERA_n_URL` + calibrated `cv/run.py` -> LIVE; otherwise No current data |
 | Explanation | deterministic template | optional OpenAI (`ENABLE_AI=true`, backend-only key), silent template fallback |
@@ -22,3 +22,5 @@ API: `GET /segments`, `GET /route?from=lat,lon&to=lat,lon`, `GET /cameras`, `GET
 Limitations: pedestrian presence does not imply safety; OSM lighting is incomplete; camera coverage is limited; nearest-way matching (35 m) is approximate; real deployment needs permissions, a DPIA, and camera-operator agreements. Decision support, not a safety guarantee.
 
 Pedestrian passages: Temple Bar, Cabra Road and North Circular Road each have a rolling 10-minute observation card. See [RUN.md](RUN.md) for feed setup, counting-line calibration and continuous monitoring. Only Temple Bar has a supplied feed. Missing observations are never replaced with demo counts.
+
+A-to-B routing chooses the fastest available walking route independently of lighting and pedestrian observations. Zero-observation notices describe the visible camera section and do not reroute the user.

@@ -204,3 +204,17 @@ A full-window label requires 600 seconds observed in the trailing 600 seconds;
 partial windows show their actual coverage. Counts are detector estimates, not
 unique identities or a measurement of the entire road. No red thresholds are
 introduced by this change. Synthetic observations never count as live coverage.
+
+## A-to-B routing update (user-requested, 2026-10-04)
+
+The user's new direction supersedes the lighting-based route-selection rule.
+Use the fastest available pedestrian route from a dedicated OSRM foot-profile
+server. Lighting and pedestrian activity do not change the path. Remove fixture
+routing and custom graph traversal; routing outages return HTTP 503 with a retry
+message. `/route` adds `route` (selected path), `camera_ids`, `street_names` and
+`traffic_warnings`; `fastest` and `well_lit` remain compatibility aliases of the
+same route. Route cameras must be within 15m of its geometry; road names alone
+cannot match an entire road. Notices describe zero pedestrians in a fresh frame,
+or zero passages over a complete observed 10-minute window, limited to the
+camera-covered section. Partial, stale or missing passage counts never imply
+zero. The frontend refreshes notices using camera polling without rerouting.

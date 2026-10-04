@@ -16,7 +16,7 @@ def health(): return {"ok": True, "demo_mode": config.DEMO_MODE}
 @app.get("/status")
 def status():
     cs = camera.cameras()
-    return {"mode": "demo" if config.DEMO_MODE else "live", "routing": "demo" if config.DEMO_MODE else "osrm (demo fallback)",
+    return {"mode": "demo" if config.DEMO_MODE else "live", "routing": "osrm-foot",
             "lighting": lighting.load_ways()[1], "cameras": "live" if any(c["source"] == "live" for c in cs) else "no_data",
             "ai": "openai" if config.ENABLE_AI and config.OPENAI_API_KEY else "disabled"}
 
@@ -59,16 +59,38 @@ async def demo_frame(camera_id: str):
         return Response(status_code=503, headers=headers)
 
 def _parse(s):
-    try: a, b = s.split(","); return [float(a), float(b)]
-    except Exception: raise HTTPException(400, "Use lat,lon")
+    import math
+    try:
+        a, b = (float(v) for v in s.split(','))
+        if not (math.isfinite(a) and math.isfinite(b) and -90 <= a <= 90 and -180 <= b <= 180):
+            raise ValueError()
+        return [a, b]
+    except (ValueError, TypeError):
+        raise HTTPException(400, 'Use valid lat,lng coordinates')
 
-@app.get("/route")
-def get_route(from_: str = Query(alias="from"), to: str = Query()):
-    routes, rsrc = routing.get_routes(_parse(from_), _parse(to))
-    ways, lsrc = lighting.load_ways()
-    an = [analysis.analyse(r, ways) for r in routes]
-    fast, well = analysis.pick(an); text, esrc = explanation.explain(fast, well)
-    return {"fastest": fast, "well_lit": well, "routes_available": len(an),
-            "explanation": text,
-            "sources": {"routing": rsrc, "lighting": lsrc, "explanation": esrc, "demo_mode": config.DEMO_MODE},
-            "disclaimer": "Decision support, not a safety guarantee. Data coverage varies by location and time."}
+@app.get('/route')
+def get_route(from_: str = Query(alias='from'), to: str = Query()):
+    a, b = _parse(from_), _parse(to)
+    if a == b:
+        raise HTTPException(400, 'Choose different start and destination points')
+    try:
+        routes, source = routing.get_routes(a, b)
+    except routing.RoutingUnavailable as error:
+        raise HTTPException(503, str(error))
+    # Lighting metadata is context only. No external lighting fetch blocks routing.
+    ways = lighting.demo_ways() if config.DEMO_MODE else []
+    lighting_source = 'demo' if config.DEMO_MODE else 'unknown'
+    if not config.DEMO_MODE and lighting.CACHE.exists():
+        try:
+            ways = json.loads(lighting.CACHE.read_text())
+            lighting_source = 'osm-cached'
+        except (OSError, ValueError):
+            pass
+    observations = camera.cameras()
+    analysed = [analysis.analyse(route, ways, observations) for route in routes]
+    fastest, _ = analysis.pick(analysed)
+    return {'route': fastest, 'fastest': fastest, 'well_lit': fastest,
+            'routes_available': len(analysed),
+            'explanation': 'Fastest available walking route. Pedestrian observations are shown where camera coverage exists.',
+            'sources': {'routing': source, 'lighting': lighting_source, 'explanation': 'template', 'demo_mode': config.DEMO_MODE},
+            'disclaimer': 'Decision support, not a guarantee of safety. A camera covers only the visible section of a street.'}
