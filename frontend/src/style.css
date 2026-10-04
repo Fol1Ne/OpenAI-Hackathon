@@ -72,3 +72,14 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .camera-slide .activity-card .hint{margin-top:5px}.camera-slide .demo-link{margin-top:8px;font-size:12px}
 .app-footer{color:var(--m);font-size:11px;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--b)}
 @media(max-width:800px){.app{height:auto;grid-template-rows:auto 360px auto 36px}.panel{grid-template-columns:1fr;padding:12px}.camera-tabs button{font-size:11px;padding:9px 4px}}
+.demo-camera-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.demo-camera-nav a{padding:10px 16px;border:1px solid var(--b);border-radius:9px;text-decoration:none;color:var(--m);background:var(--p);font-size:13px}
+.demo-camera-nav a[aria-current=page]{color:#1d4ed8;background:#eff6ff;border-color:#93b4ef;font-weight:600}
+
+.tab-capture { background: #fff; border: 1px solid #dbe3ee; border-radius: 16px; padding: 20px; margin: 16px 0; }
+.tab-capture h2 { margin-top: 0; }
+.tab-capture p, .tab-capture small { color: #526175; }
+.capture-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.capture-actions button { background: #2563eb; color: white; border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+.capture-actions button:disabled { opacity: .6; }
+.tab-capture canvas { width: 100%; height: auto; background: #e8eef5; cursor: crosshair; border-radius: 8px; }

@@ -88,7 +88,7 @@ export default function App() {
   const warnings = onRoute.filter(c => isCurrent(c, now) && c.source === 'live' &&
     ((c.window_complete && c.passages_10min === 0) || c.people_now === 0));
   return <div className="app">
-    <header><span>SAFE ROUTES HOME</span><a className="header-link" href="/demo/temple-bar">Temple Bar live demo →</a></header>
+    <header><span>SAFE ROUTES HOME</span><a className="header-link" href="/demo/temple-bar">Live camera demos →</a></header>
     <div className="map"><MapContainer center={[53.3455, -6.2643]} zoom={16} zoomControl>
       <TileLayer url={TILE} attribution="© OpenStreetMap contributors" />
       <MapClicks select={select} /><FitRoute route={route} />

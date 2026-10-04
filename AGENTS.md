@@ -194,7 +194,8 @@ blurred. Loopback-only preview servers use ports 8101–8103; FastAPI proxies
 them with a two-second timeout and no-store headers. Stale images return 503.
 
 Temple Bar, Cabra Road and North Circular Road replace the old demo cameras.
-Only the supplied Temple Bar feed is configured. Missing feeds show no current
+All three user-supplied feeds are configured with initial counting lines. Cabra
+Road and North Circular Road map coordinates remain unconfirmed. Missing feeds show no current
 data even when route/lighting demos are enabled. Count crossings of a calibrated
 finite pavement line in either direction, once per short-lived geometric track.
 Tracks expire after one second unseen or 30 seconds total and are never saved.
@@ -218,3 +219,13 @@ cannot match an entire road. Notices describe zero pedestrians in a fresh frame,
 or zero passages over a complete observed 10-minute window, limited to the
 camera-covered section. Partial, stale or missing passage counts never imply
 zero. The frontend refreshes notices using camera polling without rerouting.
+
+## Shared-tab demo extension (user-requested)
+
+`POST /tab-capture/detect` accepts a JPEG (max 1 MB), `X-Session` anonymous
+session token and `X-Line` normalized endpoint JSON. It proxies only to the
+loopback CV server on port 8110 with a two-second timeout and returns person
+boxes plus rolling passage/coverage aggregates. Frames never persist. Tracking
+sessions expire after inactivity. Browser permission and two-click line setup
+are required. Results are explicitly shared-tab demo observations and do not
+update verified camera or route facts.

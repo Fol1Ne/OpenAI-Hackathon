@@ -1,6 +1,7 @@
+import { CAMERA_DEMOS } from "./CameraDemo";
 export type Camera = {
   id: string; street: string; latitude: number | null; longitude: number | null;
-  source: string; status: string; updated: string | null; location_note: string;
+  unavailable_reason?: string | null; source: string; status: string; updated: string | null; location_note: string;
   people_now: number | null; passages_10min: number | null; observed_seconds: number; window_seconds: number;
   window_complete: boolean; needs_calibration: boolean;
 };
@@ -13,6 +14,7 @@ export function isCurrent(camera: Camera, now: number) {
 
 export function CameraActivity({ camera, now }: { camera: Camera; now: number }) {
   const current = isCurrent(camera, now);
+  const demo = CAMERA_DEMOS.find(item => item.id === camera.id);
   const minutes = Math.floor(camera.observed_seconds / 6) / 10;
   return <article className="activity-card">
     <div className="activity-title"><strong>{camera.street}</strong>
@@ -26,9 +28,9 @@ export function CameraActivity({ camera, now }: { camera: Camera; now: number })
       <div className="hint">{camera.window_complete ? 'Observation coverage: 10 of 10 minutes' : `Collecting data: ${minutes} of 10 minutes`}</div>
       <progress max={600} value={camera.observed_seconds} aria-label={`${camera.street} observation coverage`} />
     </> : <><div className="passage-count no-data">No current data</div>
-      <div className="hint">{camera.needs_calibration ? 'Counting line needs calibration.' : 'Waiting for camera observations.'}</div></>}
+      <div className="hint">{camera.unavailable_reason || (camera.needs_calibration ? 'Counting line needs calibration.' : 'Waiting for camera observations.')}</div></>}
     <div className="hint">{camera.updated ? `${current ? 'Updated' : 'Last observation'} ${new Date(camera.updated).toLocaleTimeString()} · ${Math.max(0, Math.floor((now - Date.parse(camera.updated)) / 1000))}s ago` : 'No observations received'}</div>
     <div className="hint">{camera.location_note}</div>
-    {camera.id === "cam1" && <a className="demo-link" href="/demo/temple-bar">Open live detection demo →</a>}
+    {demo && <a className="demo-link" href={`/demo/${demo.slug}`}>Open live detection demo →</a>}
   </article>;
 }

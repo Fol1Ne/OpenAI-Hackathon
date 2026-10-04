@@ -1,6 +1,6 @@
 import json, pathlib, time
 import httpx
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from . import config
@@ -9,6 +9,24 @@ from .services.traffic import classify_activity
 
 app = FastAPI(title="Safe Routes Home")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+@app.post('/tab-capture/detect')
+async def tab_detect(request: Request):
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > 1000000:
+            raise HTTPException(413, 'Frame too large')
+    try:
+        async with httpx.AsyncClient(timeout=2, trust_env=False) as client:
+            result = await client.post('http://127.0.0.1:8110/detect', content=bytes(body), headers={
+                'X-Session': request.headers.get('x-session', ''),
+                'X-Line': request.headers.get('x-line', 'null'),
+            })
+        return Response(result.content, status_code=result.status_code,
+                        media_type='application/json', headers={'Cache-Control': 'no-store'})
+    except httpx.HTTPError:
+        raise HTTPException(503, 'Shared-tab detector unavailable')
 
 @app.get("/health")
 def health(): return {"ok": True, "demo_mode": config.DEMO_MODE}

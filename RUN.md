@@ -116,3 +116,51 @@ always use the walking provider, with an eight-second timeout and HTTP 503 on
 failure. The map shows one fastest available walking path. Camera notices never
 redirect the path. Zero in a current frame is labelled explicitly; zero passages
 requires a complete observed window. Other sections remain without pedestrian data.
+
+## Cabra Road and North Circular Road previews
+
+All three feeds now have URLs and initial counting lines in
+`backend/app/data/cameras.json`. Start them together with:
+
+```bash
+cv/.venv/bin/python cv/run.py
+```
+
+- Temple Bar: http://127.0.0.1:5173/demo/temple-bar
+- Cabra Road: http://127.0.0.1:5173/demo/cabra-road
+- North Circular Road: http://127.0.0.1:5173/demo/north-circular-road
+
+Use the links above each preview or in the street activity card to switch cameras.
+The new cameras' coordinates remain unconfirmed, so they are excluded from map
+markers and route notices until their precise locations are configured. The
+initial lines span the visible street section; check detection and passage counts
+manually, especially where parked vehicles obscure pedestrians.
+
+### Browser tab sharing demo
+
+Start the additional local detector from the repository root:
+
+```bash
+cv/.venv/bin/python cv/tab_server.py
+```
+
+Keep the regular backend and frontend running:
+
+```bash
+cd backend && .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+```bash
+cd frontend && npm run dev -- --host 127.0.0.1
+```
+
+Open `/demo/temple-bar` (or the other camera demo) in Chrome/Edge. Open the
+camera stream, start live playback, click **Share camera tab**, and select only
+that tab. Click two endpoints across the pavement on the shared preview.
+Green boxes, person blurring, passage totals and actual observation coverage
+are computed locally. Stop sharing clears the preview; server tracks expire
+within five seconds. No frames are saved. Paused identical frames stop coverage.
+A user-selected tab is not a verified camera source, so its demo results do not
+replace map measurements. Permission is required each session. The browser
+must support getDisplayMedia on localhost or HTTPS; embedded app browsers may
+not support the chooser. Changing the video layout requires resetting the line.

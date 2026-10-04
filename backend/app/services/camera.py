@@ -60,6 +60,7 @@ def cameras():
             'passages_10min': int(metric['passages_10min']) if valid else None,
             'observed_seconds': seconds, 'window_seconds': 600,
             'window_complete': bool(complete),
+            'unavailable_reason': 'YouTube is requesting sign-in before this feed can be analysed.' if not valid and metric.get('error') == 'youtube_sign_in' else None,
             'needs_calibration': metric.get('state') == 'needs_calibration',
         })
     return out

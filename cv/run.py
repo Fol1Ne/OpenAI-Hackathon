@@ -183,10 +183,15 @@ def worker(camera, source, replay, output, model_path):
             counter.disconnect()
             if reader:
                 reader.stopped = True
-            output.put({'id': camera['id'], 'state': 'no_data', 'error': type(error).__name__})
-            detail = str(error) if isinstance(error, RuntimeError) else type(error).__name__
-            print(f"{camera['id']}: no current data ({detail}); retrying in 10s", flush=True)
-            time.sleep(10)
+            restricted = isinstance(error, subprocess.CalledProcessError) and "Sign in to confirm" in (error.stderr or '')
+            reason = 'youtube_sign_in' if restricted else type(error).__name__
+            detail = 'YouTube requires sign-in to confirm access' if restricted else str(error) if isinstance(error, RuntimeError) else type(error).__name__
+            delay = 300 if restricted else 10
+            print(f"{camera['id']}: no current data ({detail}); retrying in {delay}s", flush=True)
+            # Heartbeats prevent the watchdog from turning access failures into a retry loop.
+            for _ in range(delay // 5):
+                output.put({'id': camera['id'], 'state': 'no_data', 'error': reason})
+                time.sleep(5)
 
 
 def calibrate(camera, source, replay):

@@ -21,6 +21,6 @@ Activity labels (descriptive, not safety thresholds): quiet <2, steady 2–8, bu
 API: `GET /segments`, `GET /route?from=lat,lon&to=lat,lon`, `GET /cameras`, `GET /health`.
 Limitations: pedestrian presence does not imply safety; OSM lighting is incomplete; camera coverage is limited; nearest-way matching (35 m) is approximate; real deployment needs permissions, a DPIA, and camera-operator agreements. Decision support, not a safety guarantee.
 
-Pedestrian passages: Temple Bar, Cabra Road and North Circular Road each have a rolling 10-minute observation card. See [RUN.md](RUN.md) for feed setup, counting-line calibration and continuous monitoring. Only Temple Bar has a supplied feed. Missing observations are never replaced with demo counts.
+Pedestrian passages: Temple Bar, Cabra Road and North Circular Road each have a rolling 10-minute observation card. See [RUN.md](RUN.md) for feed setup, counting-line calibration and continuous monitoring. All three camera feeds are configured; Cabra Road and North Circular Road map coordinates still need confirmation. Missing observations are never replaced with demo counts.
 
 A-to-B routing chooses the fastest available walking route independently of lighting and pedestrian observations. Zero-observation notices describe the visible camera section and do not reroute the user.

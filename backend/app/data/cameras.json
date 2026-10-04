@@ -23,37 +23,37 @@
     "street": "Cabra Road",
     "latitude": null,
     "longitude": null,
-    "stream_url": null,
+    "stream_url": "https://www.youtube.com/watch?v=f43rKPCALls",
     "counting_line": [
       [
-        0.2,
-        0.65
+        0.5,
+        0.53
       ],
       [
-        0.8,
-        0.65
+        0.5,
+        0.87
       ]
     ],
-    "calibrated_for": null,
-    "location_note": "Camera location and feed pending."
+    "calibrated_for": "https://www.youtube.com/watch?v=f43rKPCALls",
+    "location_note": "Live counts cover the visible street section. Map location not yet confirmed."
   },
   {
     "id": "cam3",
     "street": "North Circular Road",
     "latitude": null,
     "longitude": null,
-    "stream_url": null,
+    "stream_url": "https://www.youtube.com/watch?v=eSWxGOZLgCU",
     "counting_line": [
       [
-        0.2,
-        0.65
+        0.55,
+        0.42
       ],
       [
-        0.8,
-        0.65
+        0.55,
+        0.77
       ]
     ],
-    "calibrated_for": null,
-    "location_note": "Camera location and feed pending."
+    "calibrated_for": "https://www.youtube.com/watch?v=eSWxGOZLgCU",
+    "location_note": "Live counts cover the visible street section. Map location not yet confirmed."
   }
 ]
