@@ -1,0 +1,9 @@
+{"label":"DEMO DATA — hand-made central Dublin fixture for a reliable hackathon demo. Not real OSM tags, not current conditions.",
+ "nodes":{"TCD":[53.3438,-6.2546],"CG":[53.3441,-6.2597],"GN":[53.3425,-6.2600],"GS":[53.3411,-6.2606],"SSG":[53.3392,-6.2600],
+          "KIL":[53.3416,-6.2569],"DAW":[53.3403,-6.2578],"TB":[53.3454,-6.2645]},
+ "places":[{"name":"Trinity College","node":"TCD"},{"name":"Temple Bar","node":"TB"},{"name":"Grafton Street","node":"GN"},{"name":"St Stephen's Green","node":"SSG"}],
+ "ways":[{"id":"d1","name":"College Green","lit":"yes","a":"TCD","b":"CG"},{"id":"d2","name":"Grafton Street","lit":"yes","a":"CG","b":"GN"},
+  {"id":"d3","name":"Grafton Street","lit":"yes","a":"GN","b":"GS"},{"id":"d4","name":"St Stephen's Green North","lit":"yes","a":"GS","b":"SSG"},
+  {"id":"d5","name":"Nassau Street","lit":"yes","a":"TCD","b":"KIL"},{"id":"d6","name":"Kildare Street","lit":"unknown","a":"KIL","b":"DAW"},
+  {"id":"d7","name":"Dawson Lane","lit":"no","a":"DAW","b":"SSG"},{"id":"d8","name":"Dame Street","lit":"yes","a":"TB","b":"CG"},
+  {"id":"d9","name":"Duke Lane","lit":"unknown","a":"KIL","b":"GN"}]}
